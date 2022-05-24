@@ -1,13 +1,13 @@
 # Routing and Standalone Components
 
-Since its first days, the Angular Router has always been quite coupled to NgModules. Hence, one question that comes up when moving to Standalone Components is: How will routing and lazy loading work in a world without NgModules?. This article provides answers and also shows, why the router will become more important for Dependency Injection.
+Since its first days, the Angular Router has always been quite coupled to NgModules. Hence, one question that comes up when moving to Standalone Components is: How will routing and lazy loading work without NgModules? This article provides answers and also shows, why the router will become more important for Dependency Injection.
 
-[📂 Source Code (CLI Example)](TODO!)
-[📂 Source Code (Nx Example)](TODO!)
+[📂 Source Code (CLI Example)](https://github.com/manfredsteyer/experiment-standalone-components.git)
+[📂 Source Code (Nx Example)](https://github.com/manfredsteyer/demo-nx-standalone.git)
 
 ## Providing the Routing Configuration
 
-When bootstrapping a standalone component, we can provide services for the root scope. For the sake of backwards compatibility, the function ``importProvidersFrom`` allows for importing them from existing NgModules:
+When bootstrapping a standalone component, we can provide services for the root scope. For the sake of backwards compatibility, the function ``importProvidersFrom`` allows to import them from existing ``NgModule``s:
 
 ```typescript
 // main.ts
@@ -32,9 +32,9 @@ bootstrapApplication(AppComponent, {
 });
 ```
 
-This bridges the gap between NgModules and Standalone Components. The shown example uses this concept to provide services for the router, NGRX, and the ``HttpClientService``. As usual, the used ``RouterModule`` is called with ``forRoot`` which takes the top-level router configuration.
+This bridges the gap between ``NgModule``s and Standalone Components. The shown example uses this concept to provide services for the router, NGRX, and the ``HttpClientService``. As usual, the used ``RouterModule`` is called with ``forRoot`` which takes the top-level router configuration.
 
-Please note, that the usage of ``importProvidersFrom`` will peak off over time, as more and more libraries will provide functions for directly setting up and configuring their providers. For instance, there is the idea of providing a ``configureRouter`` function for setting up the router:
+Please note, that the usage of ``importProvidersFrom`` will peak off over time, as more and more libraries will provide functions for directly configuring their providers. For instance, there is the idea of providing a ``configureRouter`` function for setting up the router:
 
 ```typescript
 providers:[
@@ -42,11 +42,11 @@ providers:[
 ]
 ```
 
-The exact name of these function will be defined soon. While naming is hard in general, this is also a critical topic because it's vital to establish a naming pattern for such methods. Similar to ``forRoot``, ``forChild``, or ``forFeature``, Angular developers should know for which function to look out when adding a new library. 
+The exact name of these function will be defined soon. While naming is hard in general, this is also critical because it's vital to establish a naming pattern for such methods. Similar to ``forRoot``, ``forChild``, or ``forFeature``, Angular developers should know for which function to look out when adding a new library. 
 
 ## Lazy Loading with Standalone Components
 
-In the past, a lazy route pointed to an NgModule with child routes. As there are no ``NgModules`` anymore, ``loadChildren`` can now directly point to a lazy routing configuration:
+In the past, a lazy route pointed to an ``NgModule`` with child routes. As there are no ``NgModules`` anymore, ``loadChildren`` can now directly point to a lazy routing configuration:
 
 ```typescript
 // app.routes.ts
@@ -84,13 +84,13 @@ export const APP_ROUTES: Routes = [
 ];
 ```
 
-This reduces the indirection via an NgModule and makes our code more explicit. As an alternative, a lazy route can also directly point to a Standalone Component. For this, the above shown ``loadComponent`` property is used.
+This removes the indirection via an ``NgModule`` and makes our code more explicit. As an alternative, a lazy route can also directly point to a Standalone Component. For this, the above shown ``loadComponent`` property is used.
 
-I expect, that most teams will favor the first option, because normally, an application needs to lazy loading several routes that go together.
+I expect that most teams will favor the first option, because normally, an application needs to lazy loading several routes that go together.
 
 ## Environment Injectors: Services for Specific Routes
 
-With ``NgModule``s, each lazy module introduced a new injector and hence a new injection scope. This scope was used for providing services only needed by the lazy chunk in question. For instance, this was used to set up a feature for NGRX.
+With ``NgModule``s, each lazy module introduced a new injector and hence a new injection scope. This scope was used for providing services only needed by the respective lazy chunk. An example is setting up NGRX features.
 
 To cover such use cases, the Router now allows for introducing providers for each route. These services can be used by the route in question and their child routes:
 
@@ -128,9 +128,9 @@ export const FLIGHT_BOOKING_ROUTES: Routes = [{
 
 As shown here, we can provide services for several routes by grouping them as child routes. In these cases, a component-less parent route with an empty path (``path: ''``) is used. This pattern is already used for years to assign Guards to a group of routes.
 
-Technically, using providers in a router configuration introduces a new injector at the level of the route. Such an Injector is called Environment Injector and replaces the concept of the former (Ng)Module Injectors. The root injector and the platform injector are seen as further Environment Injectors.
+Technically, using adding a ``providers`` array to a router configuration introduces a new injector at the level of the route. Such an injector is called Environment Injector and replaces the concept of the former (Ng)Module Injectors. The root injector and the platform injector are further Environment Injectors.
 
-Interestingly, this also decouples lazy loading from introducing further injection scopes. Previously, each lazy NgModule introduced a new injection scope. Now, lazy loading itself doesn't influence the scopes. Instead, you define new scopes by adding a providers section to your routes. Also, these routes can but don't need to be lazy. 
+Interestingly, this also decouples lazy loading from introducing further injection scopes. Previously, each lazy ``NgModule`` introduced a new injection scope. Now, lazy loading itself doesn't influence the scopes. Instead, you define new scopes by adding a ``providers`` array to your routes. Also, these routes can but don't need to be lazy. 
 
 ## Setting up Your Environment: ENVIRONMENT_INITIALIZER
 
@@ -165,7 +165,7 @@ We encountered such a situation before, when we discussed the idea of a ``config
 
 ![](ddd.png)
 
-Here, the domain library manages the state for one or several feature libraries. For this, it uses an NGRX feature slice. As the domain library does not use routing, we cannot provide the NGRX feature slice there. Nethertheless, only the domain library knows how to setup the providers.
+Here, the domain library manages the state for one or several feature libraries. For this, it uses an NGRX feature slice. As the domain library does not use routing, we cannot configure the NGRX feature slice there. Nethertheless, only the domain library knows how to set it up.
 
 Hence, the domain library only provides a function returning the needed providers:
 
@@ -220,3 +220,13 @@ export const FLIGHT_BOOKING_ROUTES: Routes = [{
 ```
 
 If several features needed to use the same state, we could also pull the call to ``forBookingDomain`` up to the app level.
+
+## Conclusion
+
+This article showed the following aspects:
+
+- Top-level routes are directly defined when bootstrapping a Standalone Component.
+- For lazy loading, we can directly point to further routing configurations but also to Standalone Components.
+- Each route can introduce a further injection scope. For this, Environment Injectors are used.
+- ENVIRONMENT_INITIALIZER are used to initialize an Environment Injectors.
+- A library can expose a function, setting up all the providers it needs. This function is called in other parts of the application where the library is consumed.
