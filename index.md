@@ -34,11 +34,11 @@ bootstrapApplication(AppComponent, {
 
 This bridges the gap between ``NgModule``s and Standalone Components. The shown example uses this concept to provide services for the router, NGRX, and the ``HttpClientService``. As usual, the used ``RouterModule`` is called with ``forRoot`` which takes the top-level router configuration.
 
-Please note, that the usage of ``importProvidersFrom`` will peak off over time, as more and more libraries will provide functions for directly configuring their providers. For instance, there is the idea of providing a ``configureRouter`` function for setting up the router:
+Please note, that the usage of ``importProvidersFrom`` will peak off over time, as more and more libraries will provide functions for directly configuring their providers. For instance, there is the idea of providing a ``provideRouter`` function for setting up the router:
 
 ```typescript
 providers:[
-    configureRouter(APP_ROUTES)    
+    provideRouter(APP_ROUTES)    
 ]
 ```
 
